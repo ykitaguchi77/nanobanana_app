@@ -5,6 +5,7 @@ function ChatInterface() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -44,6 +45,39 @@ function ChatInterface() {
     }
   }
 
+  const handleGenerateImage = async () => {
+    if (!input.trim() || loading || isGeneratingImage) return
+
+    const userMessage = { role: 'user', content: `🎨 ${input}` }
+    setMessages(prev => [...prev, userMessage])
+    const prompt = input
+    setInput('')
+    setIsGeneratingImage(true)
+
+    try {
+      const response = await axios.post('/api/generate-image', {
+        prompt: prompt
+      })
+
+      const imageMessage = {
+        role: 'assistant',
+        content: response.data.description || '画像を生成しました',
+        image: response.data.imageUrl,
+        isImage: true
+      }
+      setMessages(prev => [...prev, imageMessage])
+    } catch (error) {
+      console.error('Error:', error)
+      const errorMessage = {
+        role: 'assistant',
+        content: '画像の生成中にエラーが発生しました。もう一度お試しください。'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsGeneratingImage(false)
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-0">
       <div className="bg-white rounded-lg shadow-xl overflow-hidden">
@@ -52,6 +86,9 @@ function ChatInterface() {
             <div className="text-center text-gray-500 mt-10 sm:mt-20">
               <p className="text-lg sm:text-xl mb-2">こんにちは！</p>
               <p className="text-sm sm:text-base">何でも聞いてください。</p>
+              <p className="text-xs sm:text-sm mt-4 text-gray-400">
+                💬 通常のチャット、または 🎨 画像生成ができます
+              </p>
             </div>
           )}
 
@@ -67,18 +104,35 @@ function ChatInterface() {
                     : 'bg-gray-100 text-gray-800'
                 }`}
               >
-                <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
+                {message.isImage && message.image ? (
+                  <div>
+                    <img
+                      src={message.image}
+                      alt="Generated"
+                      className="rounded-lg max-w-full h-auto mb-2"
+                      loading="lazy"
+                    />
+                    <p className="text-xs sm:text-sm text-gray-600 mt-2">{message.content}</p>
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
+                )}
               </div>
             </div>
           ))}
 
-          {loading && (
+          {(loading || isGeneratingImage) && (
             <div className="flex justify-start">
               <div className="bg-gray-100 rounded-lg p-4">
-                <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="flex items-center space-x-2">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                  {isGeneratingImage && (
+                    <span className="text-xs text-gray-500 ml-2">画像生成中...</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -88,22 +142,34 @@ function ChatInterface() {
         </div>
 
         <form onSubmit={handleSubmit} className="border-t p-3 sm:p-4">
-          <div className="flex space-x-2 sm:space-x-4">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="メッセージを入力..."
-              className="flex-1 border rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="bg-blue-500 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm sm:text-base whitespace-nowrap"
-            >
-              送信
-            </button>
+          <div className="flex flex-col space-y-2">
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="メッセージまたは画像の説明を入力..."
+                className="flex-1 border rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loading || isGeneratingImage}
+              />
+            </div>
+            <div className="flex space-x-2">
+              <button
+                type="submit"
+                disabled={loading || isGeneratingImage || !input.trim()}
+                className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+              >
+                💬 チャット
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateImage}
+                disabled={loading || isGeneratingImage || !input.trim()}
+                className="flex-1 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+              >
+                🎨 画像生成
+              </button>
+            </div>
           </div>
         </form>
       </div>
