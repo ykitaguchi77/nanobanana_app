@@ -84,7 +84,7 @@ const SYSTEM_PROMPT = `あなたは「Nanobanana」という画像生成AIのプ
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, history } = req.body
+    const { message, history, lastGeneratedImage } = req.body
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
@@ -92,10 +92,23 @@ app.post('/api/chat', async (req, res) => {
       })
     }
 
+    // システムプロンプトに画像情報を追加
+    let contextualSystemPrompt = SYSTEM_PROMPT
+
+    if (lastGeneratedImage) {
+      contextualSystemPrompt += `\n\n## 現在の画像生成コンテキスト
+直前に以下の画像を生成しました：
+- 元のプロンプト: ${lastGeneratedImage.originalPrompt}
+- 最適化されたプロンプト: ${lastGeneratedImage.enhancedPrompt}
+- 画像の説明: ${lastGeneratedImage.description}
+
+ユーザーがこの画像について質問したり、変更を提案したりする可能性があります。この画像を参照して応答してください。`
+    }
+
     // Get the Gemini model with system instruction
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash-exp',
-      systemInstruction: SYSTEM_PROMPT
+      systemInstruction: contextualSystemPrompt
     })
 
     // Build chat history

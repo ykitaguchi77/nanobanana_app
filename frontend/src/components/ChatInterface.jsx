@@ -27,10 +27,21 @@ function ChatInterface() {
     setLoading(true)
 
     try {
-      const response = await axios.post('/api/chat', {
+      // 画像が生成されている場合、その情報も含めて送信
+      const requestData = {
         message: input,
         history: messages
-      })
+      }
+
+      if (lastGeneratedImage) {
+        requestData.lastGeneratedImage = {
+          description: lastGeneratedImage.description,
+          enhancedPrompt: lastGeneratedImage.enhancedPrompt,
+          originalPrompt: lastGeneratedImage.originalPrompt
+        }
+      }
+
+      const response = await axios.post('/api/chat', requestData)
 
       const aiMessage = { role: 'assistant', content: response.data.response }
       setMessages(prev => [...prev, aiMessage])
@@ -43,6 +54,57 @@ function ChatInterface() {
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGenerateImageFromPrompt = async (promptText) => {
+    if (loading || isGeneratingImage) return
+
+    const userMessage = { role: 'user', content: `🎨 ${promptText}` }
+    setMessages(prev => [...prev, userMessage])
+    setIsGeneratingImage(true)
+
+    try {
+      // 前回の画像情報を含めて送信
+      const requestData = {
+        prompt: promptText
+      }
+
+      // 前回の画像が存在する場合、その情報を追加
+      if (lastGeneratedImage) {
+        requestData.previousImage = {
+          prompt: lastGeneratedImage.originalPrompt,
+          enhancedPrompt: lastGeneratedImage.enhancedPrompt,
+          description: lastGeneratedImage.description
+        }
+      }
+
+      const response = await axios.post('/api/generate-image', requestData)
+
+      const imageMessage = {
+        role: 'assistant',
+        content: response.data.description || '画像を生成しました',
+        image: response.data.imageUrl,
+        isImage: true
+      }
+      setMessages(prev => [...prev, imageMessage])
+
+      // 最後に生成した画像の情報を保存
+      setLastGeneratedImage({
+        imageUrl: response.data.imageUrl,
+        originalPrompt: promptText,
+        enhancedPrompt: response.data.enhancedPrompt,
+        description: response.data.description
+      })
+    } catch (error) {
+      console.error('Error:', error)
+      const errorMessage = {
+        role: 'assistant',
+        content: '画像の生成中にエラーが発生しました。もう一度お試しください。'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsGeneratingImage(false)
     }
   }
 
@@ -99,6 +161,26 @@ function ChatInterface() {
     }
   }
 
+  // プロンプトを抽出する関数（""または「」で囲まれたテキスト）
+  const extractPrompts = (text) => {
+    const prompts = []
+    // ""で囲まれたテキストを抽出
+    const doubleQuoteMatches = text.match(/"([^"]+)"/g)
+    if (doubleQuoteMatches) {
+      doubleQuoteMatches.forEach(match => {
+        prompts.push(match.slice(1, -1))
+      })
+    }
+    // 「」で囲まれたテキストを抽出
+    const jpQuoteMatches = text.match(/「([^」]+)」/g)
+    if (jpQuoteMatches) {
+      jpQuoteMatches.forEach(match => {
+        prompts.push(match.slice(1, -1))
+      })
+    }
+    return prompts
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-0">
       <div className="bg-white rounded-lg shadow-xl overflow-hidden">
@@ -136,7 +218,24 @@ function ChatInterface() {
                     <p className="text-xs sm:text-sm text-gray-600 mt-2">{message.content}</p>
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
+                  <div>
+                    <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
+                    {message.role === 'assistant' && extractPrompts(message.content).length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {extractPrompts(message.content).map((prompt, pIndex) => (
+                          <button
+                            key={pIndex}
+                            onClick={() => handleGenerateImageFromPrompt(prompt)}
+                            disabled={loading || isGeneratingImage}
+                            className="w-full bg-purple-500 text-white text-xs sm:text-sm px-3 py-2 rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+                          >
+                            <span>🎨</span>
+                            <span className="truncate">このプロンプトで画像生成</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
