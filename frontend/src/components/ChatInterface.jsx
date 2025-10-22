@@ -6,6 +6,7 @@ function ChatInterface() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+  const [lastGeneratedImage, setLastGeneratedImage] = useState(null)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -55,9 +56,21 @@ function ChatInterface() {
     setIsGeneratingImage(true)
 
     try {
-      const response = await axios.post('/api/generate-image', {
+      // 前回の画像情報を含めて送信
+      const requestData = {
         prompt: prompt
-      })
+      }
+
+      // 前回の画像が存在する場合、その情報を追加
+      if (lastGeneratedImage) {
+        requestData.previousImage = {
+          prompt: lastGeneratedImage.originalPrompt,
+          enhancedPrompt: lastGeneratedImage.enhancedPrompt,
+          description: lastGeneratedImage.description
+        }
+      }
+
+      const response = await axios.post('/api/generate-image', requestData)
 
       const imageMessage = {
         role: 'assistant',
@@ -66,6 +79,14 @@ function ChatInterface() {
         isImage: true
       }
       setMessages(prev => [...prev, imageMessage])
+
+      // 最後に生成した画像の情報を保存
+      setLastGeneratedImage({
+        imageUrl: response.data.imageUrl,
+        originalPrompt: prompt,
+        enhancedPrompt: response.data.enhancedPrompt,
+        description: response.data.description
+      })
     } catch (error) {
       console.error('Error:', error)
       const errorMessage = {
@@ -143,12 +164,26 @@ function ChatInterface() {
 
         <form onSubmit={handleSubmit} className="border-t p-3 sm:p-4">
           <div className="flex flex-col space-y-2">
+            {lastGeneratedImage && (
+              <div className="flex items-center justify-between bg-purple-50 px-3 py-2 rounded-lg text-xs sm:text-sm">
+                <span className="text-purple-700">
+                  ✨ 前回の画像に変更を適用できます
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLastGeneratedImage(null)}
+                  className="text-purple-500 hover:text-purple-700 font-medium"
+                >
+                  リセット
+                </button>
+              </div>
+            )}
             <div className="flex space-x-2">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="メッセージまたは画像の説明を入力..."
+                placeholder={lastGeneratedImage ? "変更内容を入力（例：もっと明るく、背景を青に）..." : "メッセージまたは画像の説明を入力..."}
                 className="flex-1 border rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={loading || isGeneratingImage}
               />

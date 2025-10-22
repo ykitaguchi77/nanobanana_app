@@ -130,7 +130,7 @@ app.post('/api/chat', async (req, res) => {
 
 app.post('/api/generate-image', async (req, res) => {
   try {
-    const { prompt } = req.body
+    const { prompt, previousImage } = req.body
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
@@ -147,11 +147,25 @@ app.post('/api/generate-image', async (req, res) => {
     // Use Gemini to enhance the prompt for better image generation
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
 
-    const enhancedPromptRequest = `以下の日本語のプロンプトを、画像生成AIに最適な英語のプロンプトに変換してください。詳細で具体的な説明を追加し、画像生成に適した形式にしてください。プロンプトのみを出力し、他の説明は不要です。
+    let enhancedPromptRequest
+
+    // 前回の画像が存在する場合、変更を適用したプロンプトを生成
+    if (previousImage && previousImage.enhancedPrompt) {
+      enhancedPromptRequest = `前回生成した画像のプロンプトに対して、ユーザーの新しい指示を適用した画像生成プロンプトを作成してください。
+
+前回の画像プロンプト: ${previousImage.enhancedPrompt}
+
+ユーザーの新しい指示: ${prompt}
+
+指示を適用した新しい英語プロンプト（前回の画像の要素を保ちつつ、新しい指示を反映させてください。プロンプトのみを出力し、他の説明は不要です）:`
+    } else {
+      // 前回の画像がない場合は通常のプロンプト生成
+      enhancedPromptRequest = `以下の日本語のプロンプトを、画像生成AIに最適な英語のプロンプトに変換してください。詳細で具体的な説明を追加し、画像生成に適した形式にしてください。プロンプトのみを出力し、他の説明は不要です。
 
 元のプロンプト: ${prompt}
 
 英語プロンプト:`
+    }
 
     const enhanceResult = await model.generateContent(enhancedPromptRequest)
     const enhanceResponse = await enhanceResult.response
