@@ -36,17 +36,30 @@ export default async function handler(req, res) {
       })
     }
 
-    // Try to use Gemini's image generation capabilities
-    // Note: Imagen 3 is available through Google AI API
+    // Use Gemini to enhance the prompt for better image generation
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+
+    const enhancedPromptRequest = `以下の日本語のプロンプトを、画像生成AIに最適な英語のプロンプトに変換してください。詳細で具体的な説明を追加し、画像生成に適した形式にしてください。プロンプトのみを出力し、他の説明は不要です。
+
+元のプロンプト: ${prompt}
+
+英語プロンプト:`
+
+    const enhanceResult = await model.generateContent(enhancedPromptRequest)
+    const enhanceResponse = await enhanceResult.response
+    let enhancedPrompt = enhanceResponse.text().trim()
+
+    // Remove any markdown formatting or extra quotes
+    enhancedPrompt = enhancedPrompt.replace(/^["']|["']$/g, '').replace(/^`+|`+$/g, '')
+
+    // Try Imagen API first (if available with Vertex AI)
     try {
-      const model = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' })
+      const imagenModel = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' })
+      const imagenResult = await imagenModel.generateContent(enhancedPrompt)
+      const imagenResponse = await imagenResult.response
 
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-
-      // Extract image data
-      if (response.candidates && response.candidates[0]) {
-        const candidate = response.candidates[0]
+      if (imagenResponse.candidates && imagenResponse.candidates[0]) {
+        const candidate = imagenResponse.candidates[0]
         if (candidate.content && candidate.content.parts) {
           for (const part of candidate.content.parts) {
             if (part.inlineData) {
@@ -56,34 +69,34 @@ export default async function handler(req, res) {
 
               return res.status(200).json({
                 imageUrl: imageUrl,
-                description: `生成された画像: ${prompt}`
+                description: `生成された画像: ${prompt}`,
+                enhancedPrompt: enhancedPrompt
               })
             }
           }
         }
       }
     } catch (imageGenError) {
-      console.log('Imagen API not available, using placeholder:', imageGenError.message)
+      console.log('Imagen API not available:', imageGenError.message)
     }
 
-    // Fallback: Generate a placeholder using text
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+    // Fallback: Use Pollinations.ai (free image generation API)
+    // This service generates real images based on prompts
+    const encodedPrompt = encodeURIComponent(enhancedPrompt)
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${Date.now()}&nologo=true`
 
-    const enhancedPrompt = `あなたは画像生成AIです。以下のプロンプトから詳細な画像の説明を生成してください：\n\n「${prompt}」\n\n画像の詳細な説明（色、構図、雰囲気など）を200文字以内で説明してください。`
+    // Generate a description in Japanese
+    const descriptionPrompt = `以下の画像プロンプトに基づいて、生成された画像の説明を日本語で50文字以内で書いてください：\n\n${enhancedPrompt}`
 
-    const result = await model.generateContent(enhancedPrompt)
-    const response = await result.response
-    const description = response.text()
-
-    // Generate a placeholder image URL using a service
-    // Using picsum.photos as a placeholder
-    const seed = encodeURIComponent(prompt.slice(0, 20))
-    const placeholderUrl = `https://picsum.photos/seed/${seed}/800/600`
+    const descResult = await model.generateContent(descriptionPrompt)
+    const descResponse = await descResult.response
+    const description = descResponse.text().trim()
 
     res.status(200).json({
-      imageUrl: placeholderUrl,
+      imageUrl: imageUrl,
       description: description,
-      note: '注: 現在はプレースホルダー画像を使用しています。Imagen APIが利用可能になると実際の画像生成が可能になります。'
+      enhancedPrompt: enhancedPrompt,
+      note: 'Pollinations.ai を使用して画像を生成しました'
     })
 
   } catch (error) {
