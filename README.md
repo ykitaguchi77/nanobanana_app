@@ -2,6 +2,16 @@
 
 Google Gemini AIを使用したチャットアプリケーションです。
 
+## 🚀 スマホですぐに試す
+
+**最速でスマホでテストしたい方は [DEPLOY.md](DEPLOY.md) をご覧ください！**
+
+Vercelを使えば5分でスマホからアクセス可能なURLが発行されます：
+1. https://vercel.com でGitHubアカウントでログイン
+2. このリポジトリをImport
+3. 環境変数 `GEMINI_API_KEY` を設定
+4. Deploy → 完了！
+
 ## 機能
 
 - Gemini 2.0 Flash Expモデルを使用したAIチャット
