@@ -15,7 +15,8 @@ Vercelを使えば5分でスマホからアクセス可能なURLが発行され�
 ## 機能
 
 - 🤖 **AIプロンプトアシスタント** - 画像生成に最適なプロンプトを提案
-- 🎨 **画像生成機能** - テキストから画像を生成（Pollinations.ai + Imagen API対応）
+- 🎨 **高品質画像生成** - Gemini 2.5 Flash Image（公式Nano Banana API）を使用
+- ✨ **反復的画像編集** - 前回の画像に変更を適用できる
 - 💬 リアルタイム会話履歴の管理
 - 📝 プロンプト作成ベストプラクティスを内蔵
 - 📱 モダンなUIデザイン（React + Tailwind CSS）
@@ -35,6 +36,8 @@ Vercelを使えば5分でスマホからアクセス可能なURLが発行され�
 - Node.js
 - Express
 - Google Generative AI SDK
+- Gemini 2.5 Flash Image（画像生成）
+- Gemini 2.0 Flash Exp（チャット・プロンプト最適化）
 - CORS対応
 
 ## セットアップ

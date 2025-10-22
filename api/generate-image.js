@@ -66,14 +66,18 @@ export default async function handler(req, res) {
     // Remove any markdown formatting or extra quotes
     enhancedPrompt = enhancedPrompt.replace(/^["']|["']$/g, '').replace(/^`+|`+$/g, '')
 
-    // Try Imagen API first (if available with Vertex AI)
+    // Use Gemini 2.5 Flash Image for image generation
     try {
-      const imagenModel = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' })
-      const imagenResult = await imagenModel.generateContent(enhancedPrompt)
-      const imagenResponse = await imagenResult.response
+      const imageModel = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash-image'
+      })
 
-      if (imagenResponse.candidates && imagenResponse.candidates[0]) {
-        const candidate = imagenResponse.candidates[0]
+      const result = await imageModel.generateContent(enhancedPrompt)
+      const response = await result.response
+
+      // Check if response contains image data
+      if (response.candidates && response.candidates[0]) {
+        const candidate = response.candidates[0]
         if (candidate.content && candidate.content.parts) {
           for (const part of candidate.content.parts) {
             if (part.inlineData) {
@@ -81,36 +85,38 @@ export default async function handler(req, res) {
               const mimeType = part.inlineData.mimeType
               const imageUrl = `data:${mimeType};base64,${imageData}`
 
+              // Generate description
+              const textModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+              const descriptionPrompt = `以下の画像プロンプトに基づいて、生成された画像の説明を日本語で50文字以内で書いてください：\n\n${enhancedPrompt}`
+              const descResult = await textModel.generateContent(descriptionPrompt)
+              const descResponse = await descResult.response
+              const description = descResponse.text().trim()
+
               return res.status(200).json({
                 imageUrl: imageUrl,
-                description: `生成された画像: ${prompt}`,
-                enhancedPrompt: enhancedPrompt
+                description: description,
+                enhancedPrompt: enhancedPrompt,
+                note: 'Gemini 2.5 Flash Image を使用して生成しました'
               })
             }
           }
         }
       }
     } catch (imageGenError) {
-      console.log('Imagen API not available:', imageGenError.message)
+      console.log('Gemini 2.5 Flash Image error:', imageGenError.message)
+
+      // Return detailed error for debugging
+      return res.status(500).json({
+        error: 'Image generation failed',
+        details: imageGenError.message,
+        note: 'Gemini 2.5 Flash Image APIでエラーが発生しました。APIキーの権限を確認してください。'
+      })
     }
 
-    // Fallback: Use Pollinations.ai (free image generation API)
-    // This service generates real images based on prompts
-    const encodedPrompt = encodeURIComponent(enhancedPrompt)
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${Date.now()}&nologo=true`
-
-    // Generate a description in Japanese
-    const descriptionPrompt = `以下の画像プロンプトに基づいて、生成された画像の説明を日本語で50文字以内で書いてください：\n\n${enhancedPrompt}`
-
-    const descResult = await model.generateContent(descriptionPrompt)
-    const descResponse = await descResult.response
-    const description = descResponse.text().trim()
-
-    res.status(200).json({
-      imageUrl: imageUrl,
-      description: description,
-      enhancedPrompt: enhancedPrompt,
-      note: 'Pollinations.ai を使用して画像を生成しました'
+    // This should not be reached if everything works correctly
+    res.status(500).json({
+      error: 'Failed to generate image',
+      note: '画像の生成に失敗しました'
     })
 
   } catch (error) {
