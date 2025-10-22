@@ -45,13 +45,13 @@ function ChatInterface() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-2 sm:px-0">
       <div className="bg-white rounded-lg shadow-xl overflow-hidden">
-        <div className="h-[600px] overflow-y-auto p-6 space-y-4">
+        <div className="h-[70vh] sm:h-[600px] overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
           {messages.length === 0 && (
-            <div className="text-center text-gray-500 mt-20">
-              <p className="text-xl mb-2">こんにちは！</p>
-              <p>何でも聞いてください。</p>
+            <div className="text-center text-gray-500 mt-10 sm:mt-20">
+              <p className="text-lg sm:text-xl mb-2">こんにちは！</p>
+              <p className="text-sm sm:text-base">何でも聞いてください。</p>
             </div>
           )}
 
@@ -61,13 +61,13 @@ function ChatInterface() {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg p-4 ${
+                className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 ${
                   message.role === 'user'
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-800'
                 }`}
               >
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
               </div>
             </div>
           ))}
@@ -87,20 +87,20 @@ function ChatInterface() {
           <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="border-t p-4">
-          <div className="flex space-x-4">
+        <form onSubmit={handleSubmit} className="border-t p-3 sm:p-4">
+          <div className="flex space-x-2 sm:space-x-4">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="メッセージを入力..."
-              className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 border rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="bg-blue-500 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm sm:text-base whitespace-nowrap"
             >
               送信
             </button>
