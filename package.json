@@ -1,0 +1,21 @@
+{
+  "name": "nanobanana-app",
+  "version": "0.1.0",
+  "description": "Gemini AI-powered chat web application",
+  "scripts": {
+    "install:all": "cd frontend && npm install && cd ../backend && npm install",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "start:backend": "cd backend && npm start"
+  },
+  "keywords": [
+    "gemini",
+    "ai",
+    "chat",
+    "react",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT"
+}
