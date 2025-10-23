@@ -88,7 +88,9 @@ function ChatInterface() {
         role: 'assistant',
         content: response.data.description || '画像を生成しました',
         image: response.data.imageUrl,
-        isImage: true
+        isImage: true,
+        enhancedPrompt: response.data.enhancedPrompt,
+        originalPrompt: promptText
       }
       setMessages(prev => [...prev, imageMessage])
 
@@ -142,7 +144,9 @@ function ChatInterface() {
         role: 'assistant',
         content: response.data.description || '画像を生成しました',
         image: response.data.imageUrl,
-        isImage: true
+        isImage: true,
+        enhancedPrompt: response.data.enhancedPrompt,
+        originalPrompt: prompt
       }
       setMessages(prev => [...prev, imageMessage])
 
@@ -163,6 +167,28 @@ function ChatInterface() {
     } finally {
       setIsGeneratingImage(false)
     }
+  }
+
+  // 画像をダウンロードする関数
+  const handleDownloadImage = (imageUrl, description) => {
+    const link = document.createElement('a')
+    link.href = imageUrl
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+    const filename = `nanobanana-${timestamp}.png`
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // プロンプトをクリップボードにコピー
+  const handleCopyPrompt = (prompt) => {
+    navigator.clipboard.writeText(prompt).then(() => {
+      // コピー成功のフィードバックを表示（簡易版）
+      alert('プロンプトをコピーしました！')
+    }).catch(err => {
+      console.error('コピーに失敗しました:', err)
+    })
   }
 
   // プロンプトを抽出する関数（""または「」で囲まれたテキスト）
@@ -272,10 +298,36 @@ function ChatInterface() {
                     <img
                       src={message.image}
                       alt="Generated"
-                      className="rounded-lg max-w-full h-auto mb-2"
+                      className="rounded-lg max-w-full h-auto mb-3"
                       loading="lazy"
                     />
-                    <p className="text-xs sm:text-sm text-gray-600 mt-2">{message.content}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">{message.content}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleDownloadImage(message.image, message.content)}
+                        className="flex-1 min-w-[120px] bg-green-500 text-white text-xs sm:text-sm px-3 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center space-x-1"
+                      >
+                        <span>⬇️</span>
+                        <span>ダウンロード</span>
+                      </button>
+                      {message.enhancedPrompt && (
+                        <button
+                          onClick={() => handleCopyPrompt(message.enhancedPrompt)}
+                          className="flex-1 min-w-[120px] bg-blue-500 text-white text-xs sm:text-sm px-3 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center space-x-1"
+                        >
+                          <span>📋</span>
+                          <span>プロンプトコピー</span>
+                        </button>
+                      )}
+                    </div>
+                    {message.originalPrompt && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        <details className="cursor-pointer">
+                          <summary className="hover:text-gray-700">元のプロンプト</summary>
+                          <p className="mt-1 pl-2 border-l-2 border-gray-300">{message.originalPrompt}</p>
+                        </details>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-sm sm:text-base">
