@@ -196,7 +196,34 @@ app.post('/api/generate-image', async (req, res) => {
         model: 'gemini-2.5-flash-image'
       })
 
-      const result = await imageModel.generateContent(enhancedPrompt)
+      // 画像編集モード：前回の画像が存在する場合
+      let result
+      if (previousImage && previousImage.imageUrl) {
+        // data:image/png;base64,... 形式から base64 データと mimeType を抽出
+        const dataUrlMatch = previousImage.imageUrl.match(/^data:([^;]+);base64,(.+)$/)
+        if (dataUrlMatch) {
+          const mimeType = dataUrlMatch[1]
+          const base64Data = dataUrlMatch[2]
+
+          // 画像データとプロンプトを一緒に送信（画像編集）
+          result = await imageModel.generateContent([
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Data
+              }
+            },
+            { text: enhancedPrompt }
+          ])
+        } else {
+          // data URL形式でない場合は通常の生成
+          result = await imageModel.generateContent(enhancedPrompt)
+        }
+      } else {
+        // 通常の画像生成
+        result = await imageModel.generateContent(enhancedPrompt)
+      }
+
       const response = await result.response
 
       // Check if response contains image data

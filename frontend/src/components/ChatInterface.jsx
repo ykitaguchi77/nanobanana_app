@@ -72,12 +72,13 @@ function ChatInterface() {
         prompt: promptText
       }
 
-      // 前回の画像が存在する場合、その情報を追加
+      // 前回の画像が存在する場合、その情報と画像データを追加
       if (lastGeneratedImage) {
         requestData.previousImage = {
           prompt: lastGeneratedImage.originalPrompt,
           enhancedPrompt: lastGeneratedImage.enhancedPrompt,
-          description: lastGeneratedImage.description
+          description: lastGeneratedImage.description,
+          imageUrl: lastGeneratedImage.imageUrl  // 実際の画像データを送信
         }
       }
 
@@ -125,12 +126,13 @@ function ChatInterface() {
         prompt: prompt
       }
 
-      // 前回の画像が存在する場合、その情報を追加
+      // 前回の画像が存在する場合、その情報と画像データを追加
       if (lastGeneratedImage) {
         requestData.previousImage = {
           prompt: lastGeneratedImage.originalPrompt,
           enhancedPrompt: lastGeneratedImage.enhancedPrompt,
-          description: lastGeneratedImage.description
+          description: lastGeneratedImage.description,
+          imageUrl: lastGeneratedImage.imageUrl  // 実際の画像データを送信
         }
       }
 
@@ -183,6 +185,62 @@ function ChatInterface() {
     return prompts
   }
 
+  // テキストをプロンプト部分とそれ以外に分割してレンダリング
+  const renderMessageWithPrompts = (text) => {
+    // ""と「」の両方にマッチする正規表現
+    const regex = /"([^"]+)"|「([^」]+)」/g
+    const parts = []
+    let lastIndex = 0
+    let match
+
+    while ((match = regex.exec(text)) !== null) {
+      // マッチ前のテキスト
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: text.substring(lastIndex, match.index)
+        })
+      }
+      // プロンプト部分
+      const promptText = match[1] || match[2]
+      parts.push({
+        type: 'prompt',
+        content: promptText,
+        fullMatch: match[0]
+      })
+      lastIndex = regex.lastIndex
+    }
+    // 残りのテキスト
+    if (lastIndex < text.length) {
+      parts.push({
+        type: 'text',
+        content: text.substring(lastIndex)
+      })
+    }
+
+    return parts.map((part, index) => {
+      if (part.type === 'text') {
+        return <span key={index} className="whitespace-pre-wrap">{part.content}</span>
+      } else {
+        return (
+          <span key={index} className="inline-block my-1">
+            <span className="bg-purple-100 text-purple-900 px-2 py-1 rounded font-medium">
+              {part.fullMatch}
+            </span>
+            <button
+              onClick={() => handleGenerateImageFromPrompt(part.content)}
+              disabled={loading || isGeneratingImage}
+              className="ml-2 bg-purple-500 text-white text-xs px-3 py-1 rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors inline-flex items-center space-x-1"
+            >
+              <span>🎨</span>
+              <span>生成</span>
+            </button>
+          </span>
+        )
+      }
+    })
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-0">
       <div className="bg-white rounded-lg shadow-xl overflow-hidden">
@@ -220,23 +278,11 @@ function ChatInterface() {
                     <p className="text-xs sm:text-sm text-gray-600 mt-2">{message.content}</p>
                   </div>
                 ) : (
-                  <div>
-                    <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
-                    {message.role === 'assistant' && extractPrompts(message.content).length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        {extractPrompts(message.content).map((prompt, pIndex) => (
-                          <button
-                            key={pIndex}
-                            onClick={() => handleGenerateImageFromPrompt(prompt)}
-                            disabled={loading || isGeneratingImage}
-                            className="w-full bg-purple-500 text-white text-xs sm:text-sm px-3 py-2 rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
-                          >
-                            <span>🎨</span>
-                            <span className="truncate">このプロンプトで画像生成</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <div className="text-sm sm:text-base">
+                    {message.role === 'assistant' && extractPrompts(message.content).length > 0
+                      ? renderMessageWithPrompts(message.content)
+                      : <span className="whitespace-pre-wrap">{message.content}</span>
+                    }
                   </div>
                 )}
               </div>
