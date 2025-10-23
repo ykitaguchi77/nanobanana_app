@@ -91,13 +91,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, history, lastGeneratedImage } = req.body
+    const { message, history, lastGeneratedImage, model: selectedModel = 'flash' } = req.body
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
         error: 'GEMINI_API_KEY is not set'
       })
     }
+
+    // Select the chat model based on user choice
+    const chatModelName = selectedModel === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash'
 
     // システムプロンプトに画像情報を追加
     let contextualSystemPrompt = SYSTEM_PROMPT
@@ -114,7 +117,7 @@ export default async function handler(req, res) {
 
     // Get the Gemini model
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: chatModelName,
       systemInstruction: contextualSystemPrompt
     })
 

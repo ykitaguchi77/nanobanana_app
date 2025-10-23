@@ -31,7 +31,8 @@ function ChatInterface() {
       // 画像が生成されている場合、その情報も含めて送信
       const requestData = {
         message: input,
-        history: messages
+        history: messages,
+        model: selectedModel
       }
 
       if (lastGeneratedImage) {
@@ -68,8 +69,7 @@ function ChatInterface() {
     try {
       // 前回の画像情報を含めて送信
       const requestData = {
-        prompt: promptText,
-        model: selectedModel
+        prompt: promptText
       }
 
       // 前回の画像が存在する場合、その情報を追加
@@ -122,8 +122,7 @@ function ChatInterface() {
     try {
       // 前回の画像情報を含めて送信
       const requestData = {
-        prompt: prompt,
-        model: selectedModel
+        prompt: prompt
       }
 
       // 前回の画像が存在する場合、その情報を追加
@@ -281,7 +280,7 @@ function ChatInterface() {
               </div>
             )}
             <div className="flex items-center justify-center space-x-4 bg-gray-50 px-3 py-2 rounded-lg">
-              <span className="text-xs sm:text-sm font-medium text-gray-700">モデル:</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">チャットAI:</span>
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="radio"
@@ -291,7 +290,7 @@ function ChatInterface() {
                   onChange={(e) => setSelectedModel(e.target.value)}
                   className="w-4 h-4 text-blue-500 focus:ring-blue-500"
                 />
-                <span className="text-xs sm:text-sm text-gray-700">⚡ Flash (速い・安い)</span>
+                <span className="text-xs sm:text-sm text-gray-700">⚡ Flash</span>
               </label>
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
@@ -302,7 +301,7 @@ function ChatInterface() {
                   onChange={(e) => setSelectedModel(e.target.value)}
                   className="w-4 h-4 text-purple-500 focus:ring-purple-500"
                 />
-                <span className="text-xs sm:text-sm text-gray-700">✨ Pro (高品質)</span>
+                <span className="text-xs sm:text-sm text-gray-700">✨ Pro</span>
               </label>
             </div>
             <div className="flex space-x-2">

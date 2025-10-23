@@ -84,13 +84,16 @@ const SYSTEM_PROMPT = `あなたは「Nanobanana」という画像生成AIのプ
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, history, lastGeneratedImage } = req.body
+    const { message, history, lastGeneratedImage, model: selectedModel = 'flash' } = req.body
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
         error: 'GEMINI_API_KEY is not set. Please set it in .env file'
       })
     }
+
+    // Select the chat model based on user choice
+    const chatModelName = selectedModel === 'pro' ? 'gemini-2.5-pro' : 'gemini-2.5-flash'
 
     // システムプロンプトに画像情報を追加
     let contextualSystemPrompt = SYSTEM_PROMPT
@@ -107,7 +110,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Get the Gemini model with system instruction
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: chatModelName,
       systemInstruction: contextualSystemPrompt
     })
 
@@ -143,7 +146,7 @@ app.post('/api/chat', async (req, res) => {
 
 app.post('/api/generate-image', async (req, res) => {
   try {
-    const { prompt, previousImage, model: selectedModel = 'flash' } = req.body
+    const { prompt, previousImage } = req.body
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
@@ -157,11 +160,8 @@ app.post('/api/generate-image', async (req, res) => {
       })
     }
 
-    // Select the model based on user choice
-    const imageModelName = selectedModel === 'pro' ? 'gemini-2.5-pro-image' : 'gemini-2.5-flash-image'
-
     // Use Gemini to enhance the prompt for better image generation
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     let enhancedPromptRequest
 
@@ -190,10 +190,10 @@ app.post('/api/generate-image', async (req, res) => {
     // Remove any markdown formatting or extra quotes
     enhancedPrompt = enhancedPrompt.replace(/^["']|["']$/g, '').replace(/^`+|`+$/g, '')
 
-    // Use selected Gemini model for image generation
+    // Use Gemini 2.5 Flash Image for image generation
     try {
       const imageModel = genAI.getGenerativeModel({
-        model: imageModelName
+        model: 'gemini-2.5-flash-image'
       })
 
       const result = await imageModel.generateContent(enhancedPrompt)
@@ -220,21 +220,20 @@ app.post('/api/generate-image', async (req, res) => {
                 imageUrl: imageUrl,
                 description: description,
                 enhancedPrompt: enhancedPrompt,
-                model: imageModelName,
-                note: `${imageModelName} を使用して生成しました`
+                note: 'gemini-2.5-flash-image を使用して生成しました'
               })
             }
           }
         }
       }
     } catch (imageGenError) {
-      console.log(`${imageModelName} error:`, imageGenError.message)
+      console.log('gemini-2.5-flash-image error:', imageGenError.message)
 
       // Return detailed error for debugging
       return res.status(500).json({
         error: 'Image generation failed',
         details: imageGenError.message,
-        note: `${imageModelName} APIでエラーが発生しました。APIキーの権限を確認してください。`
+        note: 'gemini-2.5-flash-image APIでエラーが発生しました。APIキーの権限を確認してください。'
       })
     }
 
