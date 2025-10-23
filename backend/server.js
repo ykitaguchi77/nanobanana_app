@@ -143,7 +143,7 @@ app.post('/api/chat', async (req, res) => {
 
 app.post('/api/generate-image', async (req, res) => {
   try {
-    const { prompt, previousImage } = req.body
+    const { prompt, previousImage, model: selectedModel = 'flash' } = req.body
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
@@ -156,6 +156,9 @@ app.post('/api/generate-image', async (req, res) => {
         error: 'Prompt is required'
       })
     }
+
+    // Select the model based on user choice
+    const imageModelName = selectedModel === 'pro' ? 'gemini-2.5-pro-image' : 'gemini-2.5-flash-image'
 
     // Use Gemini to enhance the prompt for better image generation
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
@@ -187,10 +190,10 @@ app.post('/api/generate-image', async (req, res) => {
     // Remove any markdown formatting or extra quotes
     enhancedPrompt = enhancedPrompt.replace(/^["']|["']$/g, '').replace(/^`+|`+$/g, '')
 
-    // Use Gemini 2.5 Flash Image for image generation
+    // Use selected Gemini model for image generation
     try {
       const imageModel = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash-image'
+        model: imageModelName
       })
 
       const result = await imageModel.generateContent(enhancedPrompt)
@@ -217,20 +220,21 @@ app.post('/api/generate-image', async (req, res) => {
                 imageUrl: imageUrl,
                 description: description,
                 enhancedPrompt: enhancedPrompt,
-                note: 'Gemini 2.5 Flash Image を使用して生成しました'
+                model: imageModelName,
+                note: `${imageModelName} を使用して生成しました`
               })
             }
           }
         }
       }
     } catch (imageGenError) {
-      console.log('Gemini 2.5 Flash Image error:', imageGenError.message)
+      console.log(`${imageModelName} error:`, imageGenError.message)
 
       // Return detailed error for debugging
       return res.status(500).json({
         error: 'Image generation failed',
         details: imageGenError.message,
-        note: 'Gemini 2.5 Flash Image APIでエラーが発生しました。APIキーの権限を確認してください。'
+        note: `${imageModelName} APIでエラーが発生しました。APIキーの権限を確認してください。`
       })
     }
 

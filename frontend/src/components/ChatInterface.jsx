@@ -7,6 +7,7 @@ function ChatInterface() {
   const [loading, setLoading] = useState(false)
   const [isGeneratingImage, setIsGeneratingImage] = useState(false)
   const [lastGeneratedImage, setLastGeneratedImage] = useState(null)
+  const [selectedModel, setSelectedModel] = useState('flash') // 'flash' or 'pro'
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -67,7 +68,8 @@ function ChatInterface() {
     try {
       // 前回の画像情報を含めて送信
       const requestData = {
-        prompt: promptText
+        prompt: promptText,
+        model: selectedModel
       }
 
       // 前回の画像が存在する場合、その情報を追加
@@ -120,7 +122,8 @@ function ChatInterface() {
     try {
       // 前回の画像情報を含めて送信
       const requestData = {
-        prompt: prompt
+        prompt: prompt,
+        model: selectedModel
       }
 
       // 前回の画像が存在する場合、その情報を追加
@@ -277,6 +280,31 @@ function ChatInterface() {
                 </button>
               </div>
             )}
+            <div className="flex items-center justify-center space-x-4 bg-gray-50 px-3 py-2 rounded-lg">
+              <span className="text-xs sm:text-sm font-medium text-gray-700">モデル:</span>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="model"
+                  value="flash"
+                  checked={selectedModel === 'flash'}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="w-4 h-4 text-blue-500 focus:ring-blue-500"
+                />
+                <span className="text-xs sm:text-sm text-gray-700">⚡ Flash (速い・安い)</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="model"
+                  value="pro"
+                  checked={selectedModel === 'pro'}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="w-4 h-4 text-purple-500 focus:ring-purple-500"
+                />
+                <span className="text-xs sm:text-sm text-gray-700">✨ Pro (高品質)</span>
+              </label>
+            </div>
             <div className="flex space-x-2">
               <input
                 type="text"
