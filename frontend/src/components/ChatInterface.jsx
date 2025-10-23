@@ -10,6 +10,10 @@ function ChatInterface() {
   const [selectedModel, setSelectedModel] = useState('flash') // 'flash' or 'pro'
   const messagesEndRef = useRef(null)
 
+  // モバイルデバイス判定
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+                   (navigator.maxTouchPoints > 0 && window.innerWidth < 768)
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -295,21 +299,36 @@ function ChatInterface() {
               >
                 {message.isImage && message.image ? (
                   <div>
-                    <img
-                      src={message.image}
-                      alt="Generated"
-                      className="rounded-lg max-w-full h-auto mb-3"
-                      loading="lazy"
-                    />
+                    <div className="relative">
+                      <img
+                        src={message.image}
+                        alt="Generated"
+                        className="rounded-lg max-w-full h-auto mb-2"
+                        loading="lazy"
+                      />
+                      {isMobile && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-xs px-3 py-2 rounded-b-lg">
+                          💾 長押しで画像を保存
+                        </div>
+                      )}
+                    </div>
                     <p className="text-xs sm:text-sm text-gray-600 mb-3">{message.content}</p>
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleDownloadImage(message.image, message.content)}
-                        className="flex-1 min-w-[120px] bg-green-500 text-white text-xs sm:text-sm px-3 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center space-x-1"
-                      >
-                        <span>⬇️</span>
-                        <span>ダウンロード</span>
-                      </button>
+                      {!isMobile && (
+                        <button
+                          onClick={() => handleDownloadImage(message.image, message.content)}
+                          className="flex-1 min-w-[120px] bg-green-500 text-white text-xs sm:text-sm px-3 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center space-x-1"
+                        >
+                          <span>⬇️</span>
+                          <span>ダウンロード</span>
+                        </button>
+                      )}
+                      {isMobile && (
+                        <div className="flex-1 min-w-[120px] bg-green-100 text-green-800 text-xs sm:text-sm px-3 py-2 rounded-lg flex items-center justify-center space-x-1">
+                          <span>💾</span>
+                          <span>画像長押しで保存</span>
+                        </div>
+                      )}
                       {message.enhancedPrompt && (
                         <button
                           onClick={() => handleCopyPrompt(message.enhancedPrompt)}
